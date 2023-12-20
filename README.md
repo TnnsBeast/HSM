@@ -13,4 +13,4 @@ The goal of this project is to write implement an HSM from scratch on an FPGA. T
 - FPGA HSM can perform image signing and verification using SHA-256
 - MCU runs a RTOS that interacts with the FPGA HSM to perform secure boot and other cryptographic processes
 
-> This implementation is being devleoped using a Kintex 7 KC705 Development board, and is still very much a work in progress.
+> This implementation is being devleoped using a Kintex 7 KC705 Development board, and is still very much a work in progress. I am hoping to eventually design and manufacture an ASIC HSM based on the FPGA implementation, but that will be a little while in the future.
