@@ -39,6 +39,33 @@ module AES_Encrypt(
     assign ciphertext = states[14]; 
 endmodule
 
+module AES_Decrypt (
+	input logic [127:0] ciphertext,
+	input logic [255:0] key,
+	output logic [127:0] plaintext
+);
+
+	logic [(128*15)-1 :0] fullkeys;
+    logic [127:0] states [14:0];
+    logic [127:0] afterSubBytes;
+    logic [127:0] afterShiftRows;
+    
+    keyExpansion ke_inst(key, fullkeys);
+    addRoundKey ark_inst(ciphertext, fullkeys[127:0], states[0]);
+    
+    genvar i;
+    generate
+    	for (i = 1; i < 14; i = i + 1) begin : loop
+    		decryptRound dr(states[i-1], fullkeys[i*128+:128], states[i]);
+    	end
+    endgenerate
+	inverseShiftRows sr(states[13], afterShiftRows);
+	inverseSubBytes sb(afterShiftRows, afterSubBytes);
+	addRoundKey ark_inst2(afterSubBytes, fullkeys[((128*15)-1)-:128], states[14]);
+	assign plaintext = states[14];  
+endmodule
+
+
 module keyExpansion (
     input logic [0:255] key,
     output logic [0:(128*15) - 1] fullkeys
@@ -386,6 +413,19 @@ module encryptRound (
 	addRoundKey aRK(afterMixColumns, key, out);
 endmodule
 
+module decryptRound (
+	input logic [127:0] in,
+	input logic [127:0] key,
+	output logic [127:0] out
+);
+	logic [127:0] afterSubBytes, afterShiftRows, afterMixColumns, afterAddRoundKey;
+	
+	inverseShiftRows iSR(in, afterShiftRows);
+	inverseSubBytes iSB(afterShiftRows, afterSubBytes);
+	addRoundKey aRK(afterSubBytes, key, afterAddRoundKey);
+	inverseMixColumns iMC(afterAddRoundKey, out);
+endmodule
+
 module subBytes (
 	input logic [127:0] in,
 	output logic [127:0] out
@@ -397,9 +437,20 @@ module subBytes (
 		end
 	endgenerate
 endmodule
-		
+	
+module inverseSubBytes (
+	input logic [127:0] in,
+	output logic [127:0] out
+);
+	genvar i;
+	generate
+		for (i = 0; i < 128; i = i + 8) begin : sub_Bytes
+			inverseSbox s(in[i +:8], out[i +:8]);
+		end
+	endgenerate
+endmodule
 
-module sbox(
+module sbox (
 	input logic [7:0] a,
 	output logic [7:0] c
 );
@@ -723,4 +774,61 @@ module mixColumns(
 			assign state_out[i*32+:8]= mb3(state_in[(i*32 + 24)+:8]) ^ state_in[(i*32 + 16)+:8] ^ state_in[(i*32 + 8)+:8] ^ mb2(state_in[i*32+:8]);	
 		end
 	endgenerate
+endmodule
+
+
+module inverseMixColumns(
+	input logic [127:0] state_in,
+	output logic [127:0] state_out
+);
+	function [7:0] multiply;
+		input [7:0] x;
+		input integer n;
+		integer i;
+		begin
+			for (i = 0; i < n; i = i + 1) begin
+				if (x[7] == 1) x = ((x << 1) ^ 8'h1b);
+				else x = x << 1;
+			end
+			multiply = x;
+		end
+	endfunction
+	
+	function [7:0] mb0e;
+		input [7:0] x;
+		begin
+			mb0e = multiply(x,3) ^ multiply(x,2) ^ multiply(x,1);
+		end
+	endfunction
+	
+	function [7:0] mb0d;
+		input [7:0] x;
+		begin
+			mb0d = multiply(x,3) ^ multiply(x,2) ^ x;
+		end
+	endfunction
+	
+	function [7:0] mb0b;
+		input [7:0] x;
+		begin
+			mb0b = multiply(x,3) ^ multiply(x,1) ^ x;
+		end
+	endfunction
+	
+	function [7:0] mb09;
+		input [7:0] x;
+		begin
+			mb09 = multiply (x,3) ^ x;
+		end
+	endfunction
+	
+	genvar i;
+	generate 
+		for (i = 0; i < 4; i = i + 1) begin : m_col
+			assign state_out[(i*32 + 24)+:8]= mb0e(state_in[(i*32 + 24)+:8]) ^ mb0b(state_in[(i*32 + 16)+:8]) ^ mb0d(state_in[(i*32 + 8)+:8]) ^ mb09(state_in[i*32+:8]);
+			assign state_out[(i*32 + 16)+:8]= mb09(state_in[(i*32 + 24)+:8]) ^ mb0e(state_in[(i*32 + 16)+:8]) ^ mb0b(state_in[(i*32 + 8)+:8]) ^ mb0d(state_in[i*32+:8]);
+			assign state_out[(i*32 + 8)+:8]= mb0d(state_in[(i*32 + 24)+:8]) ^ mb09(state_in[(i*32 + 16)+:8]) ^ mb0e(state_in[(i*32 + 8)+:8]) ^ mb0b(state_in[i*32+:8]);
+   			assign state_out[i*32+:8]= mb0b(state_in[(i*32 + 24)+:8]) ^ mb0d(state_in[(i*32 + 16)+:8]) ^ mb09(state_in[(i*32 + 8)+:8]) ^ mb0e(state_in[i*32+:8]);
+   		end
+   	endgenerate
 endmodule

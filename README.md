@@ -14,3 +14,12 @@ The goal of this project is to write implement an HSM from scratch on an FPGA. T
 - MCU runs a RTOS that interacts with the FPGA HSM to perform secure boot and other cryptographic processes
 
 > This implementation is being devleoped using a Kintex 7 KC705 Development board, and is still very much a work in progress. I am hoping to eventually design and manufacture an ASIC HSM based on the FPGA implementation, but that will be a little while in the future.
+
+## Progress So Far
+
+- Working implementation of AES-256 encryption and decryption, performed combinationally (requires a single clock cycle)
+- Testbenches written for encryption and decryption modules
+
+## Currently Working On
+
+- SHA-256 implementation
