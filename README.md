@@ -23,3 +23,9 @@ The goal of this project is to write implement an HSM from scratch on an FPGA. T
 ## Currently Working On
 
 - SHA-256 implementation
+
+## TODO
+
+- Understand how to create image signing and verification using SHA-256 
+- Implement secure bootloader and a simple RTOS on MCU
+- Design communication protocol to be used between MCU and FPGA-HSM (SPI, IIC, etc?)
